@@ -1,35 +1,27 @@
-name: Build AppLang APK
+name: Build APK
 
 on:
   workflow_dispatch:
     inputs:
-      app_code:
+      filename:
+        description: 'File name being compiled'
+        required: true
+        default: 'main.al'
+      code:
         description: 'AppLang source code'
         required: true
-        default: 'Write("Hello World")'
+        default: ''
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Inject Code
+      - name: Save code to file
         run: |
-          echo "${{ github.event.inputs.app_code }}" > app/src/main/assets/main.al
+          echo "${{ github.event.inputs.code }}" > ${{ github.event.inputs.filename }}
 
-      - name: Build APK with Gradle
-        run: ./gradlew assembleDebug
+      # Add your Android / Gradle build steps below this...
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
