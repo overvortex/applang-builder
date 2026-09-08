@@ -17,41 +17,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Create Minimal Android Project Structure
+      - name: Save AppLang Code
         run: |
-          if [ ! -f "gradlew" ]; then
-            echo "Initializing basic android project structure..."
-            mkdir -p app/src/main/java app/src/main/res
-            
-            printf "plugins {\n    id 'com.android.application'\n}\nandroid {\n    namespace 'com.applang.app'\n    compileSdk 33\n    defaultConfig {\n        applicationId \"com.applang.app\"\n        minSdk 21\n        targetSdk 33\n        versionCode 1\n        versionName \"1.0\"\n    }\n}\n" > app/build.gradle
+          mkdir -p output
+          echo "${{ github.event.inputs.code }}" > output/${{ github.event.inputs.filename }}
 
-            printf "buildscript {\n    repositories {\n        google()\n        mavenCentral()\n    }\n    dependencies {\n        classpath 'com.android.tools.build:gradle:7.4.2'\n    }\n}\nallprojects {\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\n" > build.gradle
-
-            echo "include ':app'" > settings.gradle
-            gradle wrapper
-          fi
-
-      - name: Save AppLang code into project source
+      - name: Package App as Zip Artifact
         run: |
-          echo "${{ github.event.inputs.code }}" > app/src/main/assets-${{ github.event.inputs.filename }}
+          cd output
+          zip -r ../applang-build.zip .
 
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
-      - name: Build APK with Gradle
-        run: ./gradlew assembleRelease
-
-      - name: Upload APK Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: app/build/outputs/apk/release/*.apk
+          path: applang-build.zip
 
