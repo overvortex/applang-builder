@@ -27,13 +27,33 @@ jobs:
 
       - name: Create Minimal Android Project Structure
         run: |
-          # If a gradle wrapper doesn't exist yet, create a basic structure so it compiles
           if [ ! -f "gradlew" ]; then
             echo "Initializing basic android project structure..."
             mkdir -p app/src/main/java app/src/main/res
             
-            # Create a basic build.gradle for the app
-            cat << 'EOF' > app/build.gradle
+            printf "plugins {\n    id 'com.android.application'\n}\nandroid {\n    namespace 'com.applang.app'\n    compileSdk 33\n    defaultConfig {\n        applicationId \"com.applang.app\"\n        minSdk 21\n        targetSdk 33\n        versionCode 1\n        versionName \"1.0\"\n    }\n}\n" > app/build.gradle
+
+            printf "buildscript {\n    repositories {\n        google()\n        mavenCentral()\n    }\n    dependencies {\n        classpath 'com.android.tools.build:gradle:7.4.2'\n    }\n}\nallprojects {\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\n" > build.gradle
+
+            echo "include ':app'" > settings.gradle
+            gradle wrapper
+          fi
+
+      - name: Save AppLang code into project source
+        run: |
+          echo "${{ github.event.inputs.code }}" > app/src/main/assets-${{ github.event.inputs.filename }}
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Build APK with Gradle
+        run: ./gradlew assembleRelease
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: app/build/outputs/apk/release/*.apk
             plugins {
                 id 'com.android.application'
             }
