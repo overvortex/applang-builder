@@ -1,4 +1,4 @@
-name: Build APK
+name: Build Real APK
 
 on:
   workflow_dispatch:
@@ -19,19 +19,35 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Save AppLang Code
-        run: |
-          mkdir -p output
-          echo "${{ github.event.inputs.code }}" > output/${{ github.event.inputs.filename }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
 
-      - name: Package App as Zip Artifact
-        run: |
-          cd output
-          zip -r ../applang-build.zip .
+      - name: Setup Java JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-      - name: Upload Artifact
+      - name: Install Cordova
+        run: npm install -g cordova
+
+      - name: Create Cordova Project & Build APK
+        run: |
+          cordova create appcom com.applang.app AppLang
+          cd appcom
+          cordova platform add android
+          
+          # Inject AppLang code as web assets inside the APK container
+          echo "${{ github.event.inputs.code }}" > www/app.al
+          
+          # Compile the unsigned debug APK
+          cordova build android --no-telemetry
+
+      - name: Upload Real APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: applang-build.zip
+          path: appcom/platforms/android/app/build/outputs/apk/debug/app-debug.apk
 
